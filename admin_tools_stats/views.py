@@ -54,23 +54,22 @@ class ChartDataView(TemplateView):
         if settings.USE_TZ:
             time_since = current_tz.localize(time_since)
             time_until = current_tz.localize(time_until)
-            time_until = time_until.replace(hour=23, minute=59)
+        time_until = time_until.replace(hour=23, minute=59)
 
-        # data = dashboard_stats.get_time_series(self.request.GET, self.request, time_since, time_until, interval)
         series = dashboard_stats.get_multi_time_series(self.request, time_since, time_until, interval)
         ydata_serie = {}
         names = {}
-        i = 0
-        for key, data in series.items():
-            i += 1
-            xdata = []
-            ydata = []
-            for data_date in data:
-                start_time = int(time.mktime(data_date[0].timetuple()) * 1000)
-                xdata.append(start_time)
-                ydata.append(data_date[1])
-            ydata_serie['y' + str(i)] = ydata
-            names['name' + str(i)] = str(key)
+        xdata = []
+        for date in sorted(series.keys()):
+            xdata.append(int(time.mktime(date.timetuple()) * 1000))
+            i = 0
+            for key, value in series[date].items():
+                i += 1
+                y_key = 'y%i' % i
+                if y_key not in ydata_serie:
+                    ydata_serie[y_key] = []
+                    names['name%i' % i] = str(key)
+                ydata_serie[y_key].append(value)
 
         context['extra'] = {
             'x_is_date': True,
