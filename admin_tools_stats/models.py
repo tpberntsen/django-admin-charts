@@ -279,7 +279,7 @@ class DashboardStats(models.Model):
         try:
             model_name = apps.get_model(self.model_app_name, self.model_name)
             kwargs = {}
-            if not request.user.is_superuser and self.user_field_name:
+            if request and not request.user.is_superuser and self.user_field_name:
                 kwargs[self.user_field_name] = request.user
             for i in all_criteria:
                 # fixed mapping value passed info kwargs
@@ -320,7 +320,11 @@ class DashboardStats(models.Model):
             qs = model_name.objects
             qs = qs.filter(**time_range)
             qs = qs.filter(**kwargs)
-            qs = qs.annotate(d=Trunc(self.date_field_name, interval, tzinfo=time_since.tzinfo))
+            if hasattr(time_since, 'tzinfo') and time_since.tzinfo:
+                tzinfo = {'tzinfo': time_since.tzinfo}
+            else:
+                tzinfo = {}
+            qs = qs.annotate(d=Trunc(self.date_field_name, interval, **tzinfo))
             if dynamic_criteria_field_name:
                 qs = qs.values_list('d', dynamic_criteria_field_name)
                 qs = qs.order_by('d', dynamic_criteria_field_name)
@@ -333,9 +337,9 @@ class DashboardStats(models.Model):
             self.error_message = str(e)
             messages.add_message(request, messages.ERROR, "%s dashboard: %s" % (self.graph_title, str(e)))
 
-    def get_multi_time_series(self, request, time_since, time_until, interval):
+    def get_multi_time_series(self, configuration, time_since, time_until, interval, request=None):
         try:
-            criteria_id = int(request.GET.get('select_box_multiple_series', ''))
+            criteria_id = int(configuration.get('select_box_multiple_series', ''))
             criteria = self.criteria.get(use_as='multiple_series', pk=criteria_id)
         except (DashboardStatsCriteria.DoesNotExist, ValueError):
             criteria = None
@@ -362,7 +366,7 @@ class DashboardStats(models.Model):
                         series[time][name] = value
             else:
                 serie = self.get_time_series(
-                    criteria.dynamic_criteria_field_name, request.GET, all_criteria, request, time_since, time_until, interval
+                    criteria.dynamic_criteria_field_name, configuration, all_criteria, request, time_since, time_until, interval
                 )
                 names = choices.keys()
                 for time, key, value in serie:
@@ -372,7 +376,7 @@ class DashboardStats(models.Model):
                             series[time][name] = 0
                     series[time][key] = value
         else:
-            serie = self.get_time_series(None, request.GET, all_criteria, request, time_since, time_until, interval)
+            serie = self.get_time_series(None, configuration, all_criteria, request, time_since, time_until, interval)
             for time, value in serie:
                 series[time] = {'': value}
             names = {'': ''}
