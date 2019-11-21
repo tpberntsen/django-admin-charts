@@ -57,6 +57,8 @@ class DashboardChart(modules.DashboardModule):
     def prepare_module_data(self, graph_key):
         """ Prepares data for template (passed as module attributes) """
         self.chart_container = "chart_container_" + self.graph_key
+        self.chart_height = 300
+        self.chart_width = '100%'
         self.id = 'chart_' + self.graph_key
 
     def get_title(self, graph_key):
