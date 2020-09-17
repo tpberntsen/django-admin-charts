@@ -1,6 +1,10 @@
 Changelog
 =========
 
+0.22.1 (2020-09-17)
+-------------------
+* fix select_str not defined
+
 0.22.0 (2020-09-15)
 -------------------
 * fix hourly chart (sorting)
